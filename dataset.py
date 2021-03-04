@@ -1,23 +1,25 @@
-import json
+import os
+import jieba
 import numpy as np
 
+from utils import read_json
+
 class Turn:
-    def __init__(self, turn_id, transcript, turn_label, belief_state, system_acts, system_transcript, asr=None, num=None):
-        self.id = turn_id
-        self.transcript = transcript
-        self.turn_label = turn_label
-        self.belief_state = belief_state
-        self.system_acts = system_acts
-        self.system_transcript = system_transcript
-        self.asr = asr or []
-        self.num = num or {}
+    def __init__(self, role, utterance, dialog_act):
+        self.role = role
+        self.utterance = utterance
+        self.dialog_act = dialog_act
+
+        self.transcript = [word for word in jieba.cut(utterance)] if role == 'usr' else ''
+        self.turn_label = [[action[0], action[1]] for action in dialog_act]
+        self.belief_state = [{'slots':[action[1], action[2]], 'act':action[0]} for action in dialog_act]
+        self.system_transcript = utterance if role == 'sys' else ''
+        self.num = {}
 
     def to_dict(self):
-        return {'turn_id': self.id,
-                'transcript': self.transcript,
+        return {'transcript': self.transcript,
                 'turn_label': self.turn_label,
                 'belief_state': self.belief_state,
-                'system_acts': self.system_acts,
                 'system_transcript': self.system_transcript,
                 'num': self.num}
 
@@ -39,7 +41,7 @@ class Dialogue:
 
     @classmethod
     def from_dict(cls, d):
-        return cls(d['dialogue_id'], [Turn.from_dict(t) for t in d['turns']])
+        return cls(d['sys-usr'], [Turn.from_dict(t) for t in d['turns']])
 
 class Dataset:
     def __init__(self, dialogues):
@@ -58,7 +60,7 @@ class Dataset:
 
     @classmethod
     def from_dict(cls, d):
-        return cls([Dialogue.from_dict(dd) for dd in d['dialogues']])
+        return cls([Dialogue.from_dict(dd) for dd in d[:4]])
 
     def evaluate_preds(self, preds):
         request = []
@@ -69,10 +71,10 @@ class Dataset:
         for d in self.dialogues:
             pred_state = {}
             for t in d.turns:
-                gold_request = set([(s, v) for s, v in t.turn_label if s == 'request'])
-                gold_inform = set([(s, v) for s, v in t.turn_label if s != 'request'])
-                pred_request = set([(s, v) for s, v in preds[i] if s == 'request'])
-                pred_inform = set([(s, v) for s, v in preds[i] if s != 'request'])
+                gold_request = set([(s, v) for s, v in t.turn_label if s == 'Request'])
+                gold_inform = set([(s, v) for s, v in t.turn_label if s != 'Request'])
+                pred_request = set([(s, v) for s, v in preds[i] if s == 'Request'])
+                pred_inform = set([(s, v) for s, v in preds[i] if s != 'Request'])
                 request.append(gold_request == pred_request)
                 inform.append(gold_inform == pred_inform)
 
@@ -82,23 +84,30 @@ class Dataset:
                     pred_state[s] = v
                 for b in t.belief_state:
                     for s, v in b['slots']:
-                        if b['act'] != 'request':
+                        if b['act'] != 'Request':
                             gold_recovered.add((b['act'], fix.get(s.strip(), s.strip()), fix.get(v.strip(), v.strip())))
                 for s, v in pred_state.items():
-                    pred_recovered.add(('inform', s, v))
+                    pred_recovered.add(('Inform', s, v))
                 joint_goal.append(gold_recovered == pred_recovered)
                 i += 1
         return {'turn_inform': np.mean(inform), 'turn_request': np.mean(request), 'joint_goal': np.mean(joint_goal)}
 
 class Ontology:
-    def __init__(self, slots=None, values=None, num=None):
-        self.slots = slots or []
-        self.values = values or {}
-        self.num = num or {}
+    def __init__(self, path):
+        self.slots = []
+        self.values ={}
+        self.num = {}
+
+        files = os.listdir(path)
+
+        for file in files:
+            values = []
+            for slot in read_json(path + "/" + file):
+                value = slot[0]
+                key = slot[1]['领域']
+                values.append(value)
+            self.values[key] = values
+            self.slots.append(key)
 
     def to_dict(self):
         return {'slots': self.slots, 'values': self.values, 'num': self.num}
-
-    @classmethod
-    def from_dict(cls, d):
-        return cls(**d)

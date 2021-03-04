@@ -32,12 +32,12 @@ def create_parser():
 
     return parser
 
-def load_dataset(base_path):
+def load_dataset():
     dataset = {}
-    dataset['train'] = Dataset.from_dict(read_json(base_path / 'train.json'))
-    dataset['dev'] = Dataset.from_dict(read_json(base_path / 'dev.json'))
-    dataset['test'] = Dataset.from_dict(read_json(base_path / 'test.json'))
-    ontology = Ontology.from_dict(read_json(base_path / 'ontology.json'))
+    dataset['train'] = Dataset.from_dict(read_json('data/crosswoz/readabe_train_data.json'))
+    dataset['dev'] = Dataset.from_dict(read_json('data/crosswoz/readabe_val_data.json'))
+    dataset['test'] = Dataset.from_dict(read_json('data/crosswoz/readabe_test_data.json'))
+    ontology = Ontology('data/crosswoz/ontology')
 
     return dataset, ontology
 

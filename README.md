@@ -1,31 +1,23 @@
-# BERT-DST
+第七周：
+作业要求：
+Bert-based DST
+• https://github.com/laituan245/BERT-Dialog-State-Tracking
+• https://arxiv.org/pdf/1910.12995.pdf
+• 根据以上论⽂和代码，在CrossWOZ数据集上训练DST模型
 
-The code has been tested with Python 3 and PyTorch 1.5.0. Note that the code in the folder `pytorch_pretrained_bert` was originally from the [Hugging Face team](https://github.com/huggingface). With minor modifications, you can use the latest version of [huggingface/transformers](https://github.com/huggingface/transformers).
+作业思路：
+WOZ是英文数据集，CrossWOZ是中文数据集，因此在生成feature的时候用Jieba进行分词。另外CrossWOZ数据集的结构和WOZ数据集有差异，因此对数据处理的部分进行修改，主要修改了以下模块的以下内容：
 
-## Commands
-An example training command (using BERT-Base) is:
-`python main.py --do_train --data_dir=data/woz/ --bert_model=bert-base-uncased --output_dir=outputs`
+dataset.py 
+	class Turn
+	class Dataset
+	class Ontology
 
-An example training command (using BERT-Large) is:
-`python main.py --do_train --data_dir=data/woz/ --bert_model=bert-large-uncased --output_dir=outputs`
+main.py 
+	load_dataset()
 
-## Results
+训练脚本：
+python main.py --do_train --data_dir=data/ --bert_model=bert-base-chinese --output_dir=outputs --epochs=1
 
-The table below shows the results on the WoZ restaurant reservation datasets.
-
-Model | Joint Goal (WoZ) | Turn Request (WoZ)|
-:---: |:---: | :---: |
-Neural Belief Tracker - DNN | 84.4% | 91.2% |
-Neural Belief Tracker - CNN | 84.2% | 91.6% |
-GLAD | 88.1 ± 0.4% | 97.1 ± 0.2% |
-*Simple BERT Model* (BERT-Base) | 90.5% | 97.6% |
-
-## Simple BERT Model
-
-The figure below shows the architecture of the simple BERT Model.
-
-<p align="center">
-<img src="https://github.com/laituan245/BERT-Dialog-State-Tracking/blob/master/images/simple_bert_model_for_dst.png" width="80%">
-</p>
-
-Please cite our related paper [A Simple but Effective BERT Model for Dialog State Tracking on Resource-Limited Systems](https://ieeexplore.ieee.org/document/9053975) if you find this useful.
+训练效果：
+时间仓促，只完成了代码部分，没有来得及进行模型训练，后面有时间进行模型训练之后再更新训练的效果
